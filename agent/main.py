@@ -1,56 +1,59 @@
 # agent/main.py
 import os
 import yaml
-from anthropic import Anthropic
-from tools import nuclei, sqlmap, ffuf, recon, cleanup
 import logging
+from claude_client import ClaudeClient
 
-logging.basicConfig(filename='logs/agent.log', level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename='logs/agent.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
+# === CONFIG ===
 with open('config.yaml') as f:
     config = yaml.safe_load(f)
 
-client = Anthropic(api_key=config['anthropic_api_key'])
+with open('prompts/system_prompt.txt') as f:
+    SYSTEM_PROMPT = f.read()
 
-TOOLS = {
-    "run_nuclei": nuclei.run,
-    "run_sqlmap": sqlmap.run,
-    "run_ffuf": ffuf.run,
-    "recon_domain": recon.domain,
-    "cleanup_temp": cleanup.run,
-    # add others
-}
+scope_path = config.get('scope_file', 'scopes/current_scope.md')
+if os.path.exists(scope_path):
+    with open(scope_path) as f:
+        SCOPE = f.read()
+else:
+    SCOPE = "⚠️ No scope loaded ! Create scopes/current_scope.md"
 
-def main():
-    print("🚀 Phantom - Claude Ethical RedTeam Started")
-    scope = open("scopes/current_scope.md").read()
-    print(f"Scope actif :\n{scope}")
+print("🚀 Phantom - Claude Ethical RedTeam v1.0 (Step 3)")
+print(f"Scope actif :\n{SCOPE[:400]}...\n")
 
-    messages = [
-        {"role": "user", "content": f"Scope actuel :\n{scope}\n\nStart the mission mission. Think step by step."}
-    ]
+client = ClaudeClient(api_key=config['anthropic_api_key'], model=config['model'])
 
-    while True:
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",  # or opus
-            max_tokens=4096,
-            system=open("prompts/system_prompt.txt").read(),
+messages = [
+    {"role": "user", "content": f"Scope authorized :\n{SCOPE}\n\nStarting mission DEF CON. Thin step by step. Always check the scop before each offensive action."}
+]
+
+while True:
+    try:
+        messages = client.think(
             messages=messages,
-            tools=[{"name": name, "input_schema": tool.__schema__} for name, tool in TOOLS.items()]  # to define in each tool
+            system_prompt=SYSTEM_PROMPT,
+            max_tokens=config.get('max_tokens', 8192)
         )
-
-        # Gestion tool calling Claude (standard Anthropic)
-        for content in response.content:
-            if content.type == "tool_use":
-                tool_name = content.name
-                args = content.input
-                logging.info(f"Executing {tool_name} with {args}")
-                result = TOOLS[tool_name](**args)
-                messages.append({"role": "user", "content": f"Tool result: {result}"})
-            else:
-                print(content.text)
-                messages.append({"role": "assistant", "content": content.text})
-
-if __name__ == "__main__":
-    main()
+        
+        cmd = input("\n[Enter = continue] | tape 'stop' | 'report' | 'cleanup' : ").strip().lower()
+        if cmd == "stop":
+            print("🛑 Mission complete.")
+            break
+        elif cmd == "report":
+            messages.append({"role": "user", "content": "Generate a complete report of the pentest (Executive Summary + vulnérabilités + PoC + recommandations)."})
+        elif cmd == "cleanup":
+            messages.append({"role": "user", "content": "Execute cleanup_temp now."})
+            
+    except KeyboardInterrupt:
+        print("\n👋 Bye.")
+        break
+    except Exception as e:
+        logging.error(f"Erreur : {e}")
+        print(f"Erreur critique : {e}")
+        break
