@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Phantom – Ethical RedTeam — Windows Installer v1.5.0
+    Phantom – Ethical RedTeam — Windows Installer v1.6.0
 .DESCRIPTION
     Interactive setup: LLM provider, API key, authorized scope, dependencies.
     Run from the repo root: .\install.ps1
@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Phantom - Ethical RedTeam"              -ForegroundColor Cyan
-Write-Host "  Installer v1.5.0 (Windows)"            -ForegroundColor Cyan
+Write-Host "  Installer v1.6.0 (Windows)"            -ForegroundColor Cyan
 Write-Host "========================================"  -ForegroundColor Cyan
 Write-Host ""
 
@@ -52,7 +52,65 @@ Write-Host "✅ Provider selected : $($provider.ToUpper())" -ForegroundColor Gre
 Write-Host ""
 
 # ─────────────────────────────────────────
-# STEP 1 — API Key
+# Helper — test LLM connection
+# ─────────────────────────────────────────
+function Test-LLMConnection {
+    param([string]$Provider, [string]$ApiKey, [string]$OllamaHost = "http://localhost:11434")
+
+    Write-Host -NoNewline "  → Testing connection to $Provider API... "
+
+    $headers = @{ "Content-Type" = "application/json" }
+    $body    = '{"model":"","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+
+    try {
+        switch ($Provider) {
+            "anthropic" {
+                $headers["x-api-key"] = $ApiKey
+                $headers["anthropic-version"] = "2023-06-01"
+                $body = '{"model":"claude-haiku-4-5-20251001","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+                $r = Invoke-WebRequest -Uri "https://api.anthropic.com/v1/messages" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "openai" {
+                $headers["Authorization"] = "Bearer $ApiKey"
+                $body = '{"model":"gpt-4o-mini","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+                $r = Invoke-WebRequest -Uri "https://api.openai.com/v1/chat/completions" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "grok" {
+                $headers["Authorization"] = "Bearer $ApiKey"
+                $body = '{"model":"grok-2-latest","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+                $r = Invoke-WebRequest -Uri "https://api.x.ai/v1/chat/completions" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "gemini" {
+                $body = '{"contents":[{"parts":[{"text":"hi"}]}]}'
+                $r = Invoke-WebRequest -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$ApiKey" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "mistral" {
+                $headers["Authorization"] = "Bearer $ApiKey"
+                $body = '{"model":"mistral-small-latest","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+                $r = Invoke-WebRequest -Uri "https://api.mistral.ai/v1/chat/completions" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "deepseek" {
+                $headers["Authorization"] = "Bearer $ApiKey"
+                $body = '{"model":"deepseek-chat","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}'
+                $r = Invoke-WebRequest -Uri "https://api.deepseek.com/v1/chat/completions" -Method POST -Headers $headers -Body $body -UseBasicParsing -ErrorAction Stop
+            }
+            "ollama" {
+                $r = Invoke-WebRequest -Uri "$OllamaHost/api/tags" -Method GET -UseBasicParsing -ErrorAction Stop
+            }
+        }
+        if ($r.StatusCode -eq 200) {
+            Write-Host "✅ OK (HTTP 200)" -ForegroundColor Green
+            return $true
+        }
+    } catch {
+        $code = $_.Exception.Response.StatusCode.Value__
+        Write-Host "❌ Failed (HTTP $code)" -ForegroundColor Red
+    }
+    return $false
+}
+
+# ─────────────────────────────────────────
+# STEP 1 — API Key + connection test
 # ─────────────────────────────────────────
 Write-Host "[ STEP 1 / 3 ] API Key" -ForegroundColor Yellow
 Write-Host "-----------------------------------------"
@@ -61,19 +119,38 @@ $apiKey = ""
 $ollamaHost = "http://localhost:11434"
 
 if ($provider -eq "ollama") {
-    $input = Read-Host "Ollama host [http://localhost:11434]"
-    if ($input) { $ollamaHost = $input }
+    $inputHost = Read-Host "Ollama host [http://localhost:11434]"
+    if ($inputHost) { $ollamaHost = $inputHost }
+
+    if (-not (Test-LLMConnection -Provider "ollama" -OllamaHost $ollamaHost)) {
+        Write-Host "⚠️  Cannot reach Ollama at $ollamaHost" -ForegroundColor Yellow
+        Write-Host "   Make sure Ollama is running : ollama serve" -ForegroundColor Yellow
+        $confirm = Read-Host "   Continue anyway? [y/N]"
+        if ($confirm -notmatch "^[Yy]$") { Write-Host "Aborted."; exit 1 }
+    }
+
     Set-Content -Path ".env" -Value "" -Encoding UTF8
     Write-Host "✅ Ollama configured (host: $ollamaHost)" -ForegroundColor Green
 } else {
-    do {
+    $connected = $false
+    while (-not $connected) {
         $secureKey = Read-Host "Enter your $envVar" -AsSecureString
         $apiKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
             [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
         )
-        $valid = ($apiKey.Length -gt 10) -and ($keyPrefix -eq "" -or $apiKey.StartsWith($keyPrefix))
-        if (-not $valid) { Write-Host "⚠️  Invalid key. Try again." -ForegroundColor Red }
-    } while (-not $valid)
+
+        # Format check
+        if ($apiKey.Length -le 10 -or ($keyPrefix -ne "" -and -not $apiKey.StartsWith($keyPrefix))) {
+            Write-Host "⚠️  Invalid key format. Try again." -ForegroundColor Red
+            continue
+        }
+
+        # Connection test
+        $connected = Test-LLMConnection -Provider $provider -ApiKey $apiKey
+        if (-not $connected) {
+            Write-Host "⚠️  Connection failed. Check your key and network, then try again." -ForegroundColor Red
+        }
+    }
 
     Set-Content -Path ".env" -Value "$envVar=$apiKey" -Encoding UTF8
     Write-Host "✅ API key saved to .env" -ForegroundColor Green

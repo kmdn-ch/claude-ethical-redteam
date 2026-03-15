@@ -3,9 +3,80 @@ set -e
 
 echo "========================================"
 echo "  Phantom – Ethical RedTeam"
-echo "  Installer v1.5.0"
+echo "  Installer v1.6.0"
 echo "========================================"
 echo ""
+
+# ─────────────────────────────────────────
+# Helper — test LLM connection via curl
+# Uses the fastest/cheapest model per provider (not the mission model)
+# ─────────────────────────────────────────
+test_llm_connection() {
+    local provider="$1"
+    local api_key="$2"
+    local http_status
+
+    echo -n "  → Testing connection to $provider API... "
+
+    case "$provider" in
+        anthropic)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST https://api.anthropic.com/v1/messages \
+                -H "x-api-key: $api_key" \
+                -H "anthropic-version: 2023-06-01" \
+                -H "content-type: application/json" \
+                -d '{"model":"claude-haiku-4-5-20251001","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}')
+            ;;
+        openai)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST https://api.openai.com/v1/chat/completions \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d '{"model":"gpt-4o-mini","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}')
+            ;;
+        grok)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST https://api.x.ai/v1/chat/completions \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d '{"model":"grok-2-latest","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}')
+            ;;
+        gemini)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$api_key" \
+                -H "Content-Type: application/json" \
+                -d '{"contents":[{"parts":[{"text":"hi"}]}]}')
+            ;;
+        mistral)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST https://api.mistral.ai/v1/chat/completions \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d '{"model":"mistral-small-latest","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}')
+            ;;
+        deepseek)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                -X POST https://api.deepseek.com/v1/chat/completions \
+                -H "Authorization: Bearer $api_key" \
+                -H "Content-Type: application/json" \
+                -d '{"model":"deepseek-chat","max_tokens":5,"messages":[{"role":"user","content":"hi"}]}')
+            ;;
+        ollama)
+            http_status=$(curl -s -o /tmp/phantom_test.json -w "%{http_code}" \
+                "$OLLAMA_HOST/api/tags")
+            ;;
+    esac
+
+    rm -f /tmp/phantom_test.json
+
+    if [ "$http_status" = "200" ]; then
+        echo "✅ OK (HTTP 200)"
+        return 0
+    else
+        echo "❌ Failed (HTTP $http_status)"
+        return 1
+    fi
+}
 
 # ─────────────────────────────────────────
 # STEP 0 — LLM Provider selection
@@ -40,28 +111,49 @@ echo "✅ Provider selected : $PROVIDER"
 echo ""
 
 # ─────────────────────────────────────────
-# STEP 1 — API Key
+# STEP 1 — API Key + connection test
 # ─────────────────────────────────────────
 echo "[ STEP 1 / 3 ] API Key"
 echo "-----------------------------------------"
 
+OLLAMA_HOST="http://localhost:11434"
+
 if [ "$PROVIDER" = "ollama" ]; then
-    read -rp "Ollama host [http://localhost:11434] : " OLLAMA_HOST
-    OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
+    read -rp "Ollama host [http://localhost:11434] : " input_host
+    OLLAMA_HOST=${input_host:-http://localhost:11434}
+
+    if ! test_llm_connection "ollama" ""; then
+        echo "⚠️  Cannot reach Ollama at $OLLAMA_HOST"
+        echo "   Make sure Ollama is running : ollama serve"
+        read -rp "   Continue anyway? [y/N] : " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+    fi
+
     sed -i "s|^provider:.*|provider: \"$PROVIDER\"|" config.yaml
     sed -i "s|^ollama_host:.*|ollama_host: \"$OLLAMA_HOST\"|" config.yaml
     > .env
-    echo "✅ Ollama configured (host: $OLLAMA_HOST)"
 else
     while true; do
         read -rsp "Enter your $ENV_VAR : " api_key
         echo ""
-        if [ -z "$KEY_PREFIX" ] || [[ "$api_key" == ${KEY_PREFIX}* ]]; then
-            if [ ${#api_key} -gt 10 ]; then
-                break
-            fi
+
+        # Format check
+        if [ -n "$KEY_PREFIX" ] && [[ "$api_key" != ${KEY_PREFIX}* ]]; then
+            echo "⚠️  Invalid key format (expected prefix: $KEY_PREFIX). Try again."
+            continue
         fi
-        echo "⚠️  Invalid key. Try again."
+        if [ ${#api_key} -le 10 ]; then
+            echo "⚠️  Key too short. Try again."
+            continue
+        fi
+
+        # Connection test
+        if test_llm_connection "$PROVIDER" "$api_key"; then
+            break
+        else
+            echo "⚠️  Connection failed. Check your key and network, then try again."
+            echo "     (or press Ctrl+C to abort)"
+        fi
     done
 
     echo "${ENV_VAR}=${api_key}" > .env
@@ -105,11 +197,10 @@ echo ""
 echo "[ STEP 3 / 3 ] Installing dependencies"
 echo "-----------------------------------------"
 
-# Base packages (available in apt)
 sudo apt update -q
-sudo apt install -y curl git nmap sqlmap bettercap golang-go python3 python3-pip python3-venv
+sudo apt install -y curl wget unzip git nmap sqlmap bettercap golang-go python3 python3-pip python3-venv
 
-# nuclei — not in apt, install via ProjectDiscovery official script
+# nuclei — not in apt, install from GitHub Releases
 if ! command -v nuclei &>/dev/null; then
     echo "→ Installing nuclei..."
     curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
@@ -122,7 +213,7 @@ if ! command -v nuclei &>/dev/null; then
     echo "✅ nuclei installed"
 fi
 
-# ffuf — not in apt, download binary from GitHub
+# ffuf — not in apt, install from GitHub Releases
 if ! command -v ffuf &>/dev/null; then
     echo "→ Installing ffuf..."
     curl -s https://api.github.com/repos/ffuf/ffuf/releases/latest \
@@ -135,7 +226,7 @@ if ! command -v ffuf &>/dev/null; then
     echo "✅ ffuf installed"
 fi
 
-# Zphisher (educational phishing templates)
+# Zphisher
 if [ ! -d "tools/zphisher_repo" ]; then
     git clone https://github.com/htr-tech/zphisher.git tools/zphisher_repo 2>/dev/null
     chmod +x tools/zphisher_repo/zphisher.sh
@@ -152,8 +243,7 @@ if [ -d "tools/cyberstrike_repo" ]; then
         || echo "⚠️  CyberStrikeAI build failed — verify Go installation"
 fi
 
-# Python virtual environment + dependencies
-# (avoids "externally managed environment" error on Ubuntu 23.04+)
+# Python venv + dependencies
 if [ ! -d ".venv" ]; then
     python3 -m venv .venv
 fi
