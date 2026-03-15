@@ -106,6 +106,28 @@ Phantom works through the standard kill chain, narrating every decision:
 🔧 Execution : run_sqlmap
 → Target: https://someth1ng.com/api/v1/users?id=1
 → Injection found: UNION-based, 4 columns — database: someth1ng_prod
+
+🤖 Phantom : Result obtained: SQLi confirmed, partial dump acquired.
+  Analysis: standard tools exhausted on web layer. Internal network segment
+  (192.168.1.0/24) is in scope — MITM probe warranted.
+  Next optimal action: run_bettercap on eth0.
+  Reason: ARP probe will map live hosts and expose unencrypted traffic.
+
+🔧 Execution : run_bettercap
+→ Interface: eth0, module: net.probe, duration: 30s
+→ 14 live hosts discovered — 3 running HTTP on port 80 (no TLS)
+
+🤖 Phantom : Result obtained: 3 unencrypted internal services exposed.
+  Analysis: web fingerprinting of internal hosts shows legacy Apache 2.2
+  with no patch history. Standard CVE templates yielded 0 hits.
+  Escalating to full tool suite.
+  Next optimal action: run_cyberstrike on 192.168.1.42.
+  Reason: legacy target requires deeper enumeration beyond nuclei/ffuf scope.
+
+🔧 Execution : run_cyberstrike
+→ Target: 192.168.1.42, role: redteam, skill: full-scan
+→ 7 critical findings — LFI, exposed .git repo, default credentials on /manager
+→ Achieved RCE via Tomcat manager upload (CVE-2019-0232)
 ```
 
 After 10 turns, Phantom pauses:
@@ -131,12 +153,16 @@ app.someth1ng.com presents 3 critical vulnerabilities exploitable without authen
 1. CVE-2023-2745 — WordPress path traversal → arbitrary file read (PoC: /wp-admin/?action=..&page=../../../etc/passwd)
 2. SQL injection on /api/v1/users?id= → full database dump (someth1ng_prod, 12 tables, 4 200 users)
 3. /backup.zip publicly accessible → contains database credentials in plaintext
+4. Internal host 192.168.1.42 — RCE via Tomcat manager (CVE-2019-0232), default credentials
+5. 3 internal services transmitting data over unencrypted HTTP (bettercap ARP probe)
 
 **Recommendations**
 - Patch WordPress to 6.5+ immediately
 - Parameterize all SQL queries — use prepared statements
 - Remove /backup.zip and audit all publicly accessible backup files
 - Disable xmlrpc.php if not required
+- Enforce TLS on all internal services
+- Rotate Tomcat manager credentials and restrict access to localhost
 ```
 
 All findings are in `logs/` — ready to import into your report.

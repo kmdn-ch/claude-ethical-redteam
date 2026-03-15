@@ -9,7 +9,7 @@ def run(target: str, template: str = "instagram") -> str:
 
 TOOL_SPEC = {
     "name": "generate_zphisher_template",
-    "description": "Generate a template phishing eith Zphisher ultra-realistic (educational purpose only)",
+    "description": "Generate a template phishing with Zphisher ultra-realistic (educational purpose only)",
     "input_schema": {
         "type": "object",
         "properties": {
