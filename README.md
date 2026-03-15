@@ -5,6 +5,8 @@ Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templ
 
 > **Legal notice:** This project is intended solely for lawful security research and authorized testing in controlled environments. Use only on assets you own or are expressly authorized in writing to assess. Nothing in this repository grants authorization to target third-party systems.
 
+![Phantom in action](images/phantom-banner.png)
+
 ---
 
 ## Features
