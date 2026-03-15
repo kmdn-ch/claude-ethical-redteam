@@ -2,8 +2,8 @@
 set -e
 
 echo "========================================"
-echo "  Phantom – Claude Ethical RedTeam"
-echo "  Installer v1.3.0"
+echo "  Phantom – Ethical RedTeam"
+echo "  Installer v1.5.0"
 echo "========================================"
 echo ""
 

@@ -1,6 +1,6 @@
-# Phantom – Claude Ethical Red Team
+# Phantom – Ethical RedTeam
 
-**Autonomous Red Team agent powered by Claude AI**
+**Autonomous Red Team agent — works with any LLM**
 Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templates — on authorized scopes only.
 
 > **Legal notice:** This project is intended solely for lawful security research and authorized testing in controlled environments. Use only on assets you own or are expressly authorized in writing to assess. Nothing in this repository grants authorization to target third-party systems.
@@ -12,7 +12,7 @@ Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templ
 ## Features
 
 - Autonomous agent with step-by-step reasoning + auto-correction
-- Native Claude tool-calling (Nuclei, sqlmap, ffuf, recon, bettercap, cleanup, phishing templates)
+- Native tool-calling on any supported LLM (Nuclei, sqlmap, ffuf, recon, bettercap, cleanup, phishing templates)
 - Full logging + automatic cleanup of temporary files
 - Pause every N turns — human can stop, continue, or force a report
 - Social engineering limited to educational templates (no actual send without human confirmation)
@@ -110,7 +110,7 @@ python agent/main.py
 ```
 
 ```
-🚀 Phantom - Claude Ethical RedTeam v1.0
+🚀 Phantom - Ethical RedTeam v1.5.0
 Mode : AUTONOME TOTAL
 Scope : https://someth1ng.com — Pentest contract signed 2026-03-15...
 ```

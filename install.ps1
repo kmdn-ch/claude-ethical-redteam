@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Phantom – Claude Ethical RedTeam — Windows Installer v1.3.0
+    Phantom – Ethical RedTeam — Windows Installer v1.5.0
 .DESCRIPTION
     Interactive setup: LLM provider, API key, authorized scope, dependencies.
     Run from the repo root: .\install.ps1
@@ -11,8 +11,8 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Phantom - Claude Ethical RedTeam"      -ForegroundColor Cyan
-Write-Host "  Installer v1.3.0 (Windows)"            -ForegroundColor Cyan
+Write-Host "  Phantom - Ethical RedTeam"              -ForegroundColor Cyan
+Write-Host "  Installer v1.5.0 (Windows)"            -ForegroundColor Cyan
 Write-Host "========================================"  -ForegroundColor Cyan
 Write-Host ""
 

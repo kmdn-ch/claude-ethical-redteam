@@ -44,7 +44,7 @@ if env_file.exists():
 
 provider = config.get("provider", "anthropic").lower()
 print("======================================")
-print("  🚀 Phantom – Claude Ethical RedTeam")
+print("  🚀 Phantom – Ethical RedTeam")
 print(f"  Provider : {provider.upper()}")
 print(f"  Model    : {config.get('model', 'default')}")
 print(f"  Mode     : {'AUTONOMOUS' if config.get('autonomous', False) else 'Interactive'}")
