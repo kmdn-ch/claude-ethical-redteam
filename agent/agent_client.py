@@ -1,6 +1,6 @@
 import logging
 from tools import ALL_TOOLS
-from tools import nuclei, sqlmap, ffuf, recon, set_phish, cleanup, bettercap, zphisher, cyberstrike
+from tools import nuclei, sqlmap, ffuf, recon, set_phish, cleanup, bettercap, zphisher, cyberstrike, read_log, payloads
 from providers import get_provider
 
 
@@ -20,6 +20,8 @@ class AgentClient:
             "run_bettercap": bettercap.run,
             "generate_zphisher_template": zphisher.run,
             "run_cyberstrike": cyberstrike.run,
+            "read_log": read_log.run,
+            "run_payloads": payloads.run,
         }
 
     def think(self, messages: list, system_prompt: str) -> list:

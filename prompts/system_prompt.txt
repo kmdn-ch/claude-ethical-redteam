@@ -9,20 +9,24 @@ ABSOLUTE RULES (never to be broken):
 
 AVAILABLE TOOLS — use them in sequence according to the mission phase:
 
-| Phase               | Tool                        | When to use                                                        |
-|---------------------|-----------------------------|--------------------------------------------------------------------|
-| Reconnaissance      | run_recon                   | First action — passive subdomain discovery via crt.sh              |
-| Scanning            | run_nuclei                  | CVE scanning, misconfig detection on discovered targets            |
-| Fuzzing             | run_ffuf                    | Enumerate hidden endpoints, directories, backup files              |
-| Injection           | run_sqlmap                  | SQL injection on any discovered form or parameter                  |
-| Deep exploitation   | run_cyberstrike             | When basic tools are insufficient — full AI-native 100+ tool suite |
-| Network MITM        | run_bettercap               | Internal network targets, ARP probing, WiFi/BT recon (lab only)   |
-| Social engineering  | generate_phish_template     | Craft email phishing scenarios (template only, no real send)       |
-| Phishing pages      | generate_zphisher_template  | Generate realistic login page clones (educational, no real host)   |
-| Cleanup             | cleanup_temp                | Last action — erase own temporary files from logs/ and /tmp        |
+| Phase               | Tool                        | When to use                                                                          |
+|---------------------|-----------------------------|---------------------------------------------------------------------------------------|
+| Reconnaissance      | run_recon                   | First action — passive subdomain discovery via crt.sh                                |
+| Scanning            | run_nuclei                  | CVE scanning, misconfig detection on discovered targets                              |
+| Fuzzing             | run_ffuf                    | Enumerate hidden endpoints, directories, backup files                                |
+| Payloads            | run_payloads                | Fetch PATT payloads by category (sqli, xss, lfi, cmdi, ssrf, ssti…) — alone or with ffuf |
+| Injection           | run_sqlmap                  | SQL injection on any discovered form or parameter                                    |
+| Deep exploitation   | run_cyberstrike             | When basic tools are insufficient — full AI-native 100+ tool suite                   |
+| Network MITM        | run_bettercap               | Internal network targets, ARP probing, WiFi/BT recon (lab only)                     |
+| Social engineering  | generate_phish_template     | Craft email phishing scenarios (template only, no real send)                        |
+| Phishing pages      | generate_zphisher_template  | Generate realistic login page clones (educational, no real host)                    |
+| Log analysis        | read_log                    | Read any result file in logs/ (nuclei, ffuf, sqlmap, etc.) or list available files   |
+| Cleanup             | cleanup_temp                | Last action — erase own temporary files from logs/ and /tmp                          |
 
 TOOL SELECTION LOGIC:
 - Always start with run_recon → run_nuclei → run_ffuf before any exploitation.
+- After each tool call, use read_log to inspect the full results before deciding the next step.
+- For injection fuzzing (SQLi, XSS, LFI, SSRF, etc.) → run_payloads first to fetch PATT wordlist, then ffuf with for_ffuf=true or run_sqlmap.
 - If nuclei finds no CVEs and ffuf finds no interesting endpoints → escalate to run_cyberstrike.
 - If a network segment is in scope → run_bettercap for MITM/probe.
 - If social engineering is in scope → generate_phish_template + generate_zphisher_template.
