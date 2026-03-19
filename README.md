@@ -113,12 +113,16 @@ Authorization note : Pentest contract signed 2026-03-15
 
 ### Windows (PowerShell)
 
+Files downloaded from the internet are blocked by Windows by default. Run these commands **as-is** in PowerShell (no Admin required):
+
 ```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-.\install.ps1
+Unblock-File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-> The installer sets the execution policy automatically if needed. Running `Set-ExecutionPolicy` beforehand avoids any prompt.
+> **Why two commands?**
+> - `Unblock-File` removes the "downloaded from internet" mark Windows puts on files from GitHub/zip archives.
+> - `-ExecutionPolicy Bypass` bypasses the execution policy for this one call only — nothing is changed system-wide.
 
 Same interactive flow (provider -> API key -> scope -> dependencies).
 Windows limitations: `bettercap` and `zphisher` require WSL2.
