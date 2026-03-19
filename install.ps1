@@ -216,22 +216,37 @@ python -m pip install -r requirements.txt -q
 # nuclei (Windows binary)
 if (-not (Get-Command nuclei -ErrorAction SilentlyContinue)) {
     Write-Host "Downloading nuclei..."
-    $nucleiUrl = "https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_windows_amd64.zip"
     New-Item -ItemType Directory -Force -Path "bin" | Out-Null
-    Invoke-WebRequest -Uri $nucleiUrl -OutFile "bin\nuclei.zip"
-    Expand-Archive -Path "bin\nuclei.zip" -DestinationPath "bin" -Force
-    Remove-Item "bin\nuclei.zip"
-    Write-Host "[OK] nuclei installed" -ForegroundColor Green
+    try {
+        $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/projectdiscovery/nuclei/releases/latest" -UseBasicParsing
+        $asset = $rel.assets | Where-Object { $_.name -match "windows.*amd64.*\.zip$" } | Select-Object -First 1
+        if (-not $asset) { throw "No matching asset found" }
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "bin\nuclei.zip" -UseBasicParsing
+        Expand-Archive -Path "bin\nuclei.zip" -DestinationPath "bin" -Force
+        Remove-Item "bin\nuclei.zip"
+        Write-Host "[OK] nuclei installed ($($rel.tag_name))" -ForegroundColor Green
+    } catch {
+        Write-Host "[!] nuclei download failed: $_" -ForegroundColor Yellow
+        Write-Host "    Install manually: https://github.com/projectdiscovery/nuclei/releases" -ForegroundColor Yellow
+    }
 }
 
 # ffuf (Windows binary)
 if (-not (Get-Command ffuf -ErrorAction SilentlyContinue)) {
     Write-Host "Downloading ffuf..."
-    $ffufUrl = "https://github.com/ffuf/ffuf/releases/latest/download/ffuf_2.1.0_windows_amd64.zip"
-    Invoke-WebRequest -Uri $ffufUrl -OutFile "bin\ffuf.zip"
-    Expand-Archive -Path "bin\ffuf.zip" -DestinationPath "bin" -Force
-    Remove-Item "bin\ffuf.zip"
-    Write-Host "[OK] ffuf installed" -ForegroundColor Green
+    New-Item -ItemType Directory -Force -Path "bin" | Out-Null
+    try {
+        $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/ffuf/ffuf/releases/latest" -UseBasicParsing
+        $asset = $rel.assets | Where-Object { $_.name -match "windows.*amd64.*\.zip$" } | Select-Object -First 1
+        if (-not $asset) { throw "No matching asset found" }
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "bin\ffuf.zip" -UseBasicParsing
+        Expand-Archive -Path "bin\ffuf.zip" -DestinationPath "bin" -Force
+        Remove-Item "bin\ffuf.zip"
+        Write-Host "[OK] ffuf installed ($($rel.tag_name))" -ForegroundColor Green
+    } catch {
+        Write-Host "[!] ffuf download failed: $_" -ForegroundColor Yellow
+        Write-Host "    Install manually: https://github.com/ffuf/ffuf/releases" -ForegroundColor Yellow
+    }
 }
 
 # Default wordlist for ffuf (SecLists -- shared with run_payloads PATT wordlists)
