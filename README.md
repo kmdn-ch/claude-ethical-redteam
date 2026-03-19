@@ -1,7 +1,7 @@
 # Phantom – Ethical RedTeam
 
 **Autonomous Red Team agent — works with any LLM**
-Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templates — on authorized scopes only.
+Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, and social engineering templates — on authorized scopes only.
 
 > **Legal notice:** This project is intended solely for lawful security research and authorized testing in controlled environments. Use only on assets you own or are expressly authorized in writing to assess. Nothing in this repository grants authorization to target third-party systems.
 
@@ -12,10 +12,16 @@ Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templ
 ## Features
 
 - Autonomous agent with step-by-step reasoning + auto-correction
-- Native tool-calling on any supported LLM (Nuclei, sqlmap, ffuf, recon, bettercap, cleanup, phishing templates)
-- Full logging + automatic cleanup of temporary files
+- **20 built-in tools** with native tool-calling on any supported LLM
+- **Parallel tool execution** — multiple tools run concurrently
+- **Mission resume** — interrupted missions can be resumed from saved state
+- **Web dashboard** — real-time monitoring via Flask + WebSocket (port 5000)
+- **Multi-target scope** with CIDR support and strict enforcement
+- Full structured logging (console + file) + automatic cleanup
 - Pause every N turns — human can stop, continue, or force a report
-- Social engineering limited to educational templates (no actual send without human confirmation)
+- **Mission diff** — compare findings between sessions (new/resolved/persistent)
+- **CVSS scoring** — aggregate risk score from vulnerability findings
+- Social engineering limited to educational templates (no actual send)
 
 ## Supported LLM Providers
 
@@ -29,17 +35,49 @@ Uses Nuclei, sqlmap, ffuf, advanced reconnaissance, and social engineering templ
 | DeepSeek | `deepseek-chat-v3.2` | `DEEPSEEK_API_KEY` |
 | Ollama (local) | `deepseek-r1:3.2` | *(none)* |
 
-## Built-in Tools
+## Built-in Tools (20)
 
-| Tool | Role |
+### Reconnaissance
+| Tool | Description |
 |---|---|
-| Nuclei | CVE / misconfiguration scanning |
-| sqlmap | SQL injection detection & exploitation |
-| ffuf | Directory & endpoint fuzzing |
-| recon | Passive reconnaissance (DNS, WHOIS, headers) |
-| bettercap | Network MITM, ARP probe (Linux only) |
-| Zphisher | Phishing page templates (educational, Linux only) |
-| CyberStrikeAI | AI-native orchestrator — 100+ tools |
+| `run_recon` | Passive subdomain discovery (crt.sh + HackerTarget, with retry) |
+| `run_nmap` | Port scanning + service detection (quick / service / full / vuln) |
+| `run_whatweb` | Web technology fingerprinting (WhatWeb CLI + Python fallback) |
+
+### Scanning & Fuzzing
+| Tool | Description |
+|---|---|
+| `run_nuclei` | CVE / misconfiguration scanning |
+| `run_ffuf` | Directory & endpoint fuzzing |
+| `run_sqlmap` | SQL injection detection & exploitation |
+| `run_payloads` | PayloadsAllTheThings integration (13 attack categories) |
+
+### Exploitation & Network
+| Tool | Description |
+|---|---|
+| `run_bettercap` | Network MITM, ARP probe (Linux only) |
+| `run_cyberstrike` | AI-native orchestrator — 100+ tools |
+
+### Evidence & Auth
+| Tool | Description |
+|---|---|
+| `take_screenshot` | Web page screenshot capture (Playwright / wkhtmltoimage / Chromium) |
+| `configure_auth` | Auth management — bearer, basic, cookie, custom header (per target) |
+
+### Social Engineering
+| Tool | Description |
+|---|---|
+| `generate_phish_template` | Dynamic email templates — 5 scenarios (educational only) |
+| `generate_zphisher_template` | Phishing page templates via Zphisher (educational only) |
+
+### Reporting & Utilities
+| Tool | Description |
+|---|---|
+| `generate_report` | Markdown + HTML + optional PDF report generation |
+| `compare_missions` | Diff between two sessions (new / resolved / persistent findings) |
+| `read_log` | Read and parse tool output files (nuclei JSONL, ffuf JSON, etc.) |
+| `request_human_input` | Pause and ask the operator a question |
+| `cleanup_temp` | Remove temporary files (preserves mission reports) |
 
 ---
 
@@ -58,35 +96,20 @@ chmod +x install.sh
   4) Google (Gemini 3)               5) Mistral                  6) DeepSeek 3.2
   7) Ollama (local — deepseek-r1:3.2)
 Choose provider [1-7] : 1
-✅ Provider selected : ANTHROPIC
 
 [ STEP 1 / 3 ] API Key
 Enter your ANTHROPIC_API_KEY : sk-ant-...
-  → Testing connection to anthropic API... ✅ OK (HTTP 200)
-✅ API key saved to .env
+  → Testing connection... OK
 
 [ STEP 2 / 3 ] Authorized Scope
-Target URL : https://someth1ng.com
+Target URL : https://target.com
 Authorization note : Pentest contract signed 2026-03-15
-Engagement date : 2026-03-15
-✅ Scope saved to scopes/current_scope.md
 
 [ STEP 3 / 3 ] Installing dependencies...
-→ nuclei and ffuf installed from GitHub Releases
-→ Python virtualenv created in .venv/
-✅ Installation complete !
-  Provider : ANTHROPIC
-  Scope    : https://someth1ng.com
-
-  Launching Phantom now...
-
-🚀 Phantom - Ethical RedTeam v1.7.0
-  Provider : ANTHROPIC
-  Model    : claude-sonnet-4-6
-  ...
+  Installation complete !
 ```
 
-> **Note :** `chmod +x install.sh` is required once after cloning. Phantom launches automatically at the end — no extra command needed.
+> `chmod +x install.sh` is required once after cloning. Phantom launches automatically at the end.
 
 ### Windows (PowerShell)
 
@@ -94,10 +117,61 @@ Engagement date : 2026-03-15
 .\install.ps1
 ```
 
-Same interactive flow (provider → API key → scope → dependencies).
+Same interactive flow (provider -> API key -> scope -> dependencies).
 Windows limitations: `bettercap` and `zphisher` require WSL2.
 
-The installer handles everything: provider selection, API key validation (format + live connection test), scope enforcement, Python virtualenv, and external tools (nuclei/ffuf binaries downloaded automatically).
+---
+
+## Usage
+
+### Launch a mission
+
+```bash
+source .venv/bin/activate
+export $(cat .env)
+python3 agent/main.py
+```
+
+### Resume an interrupted mission
+
+```bash
+python3 agent/main.py --resume 20260318_120000
+```
+
+Phantom reloads the saved state (messages, turn count) from `logs/<session>/state.json` and continues where it left off.
+
+### Web Dashboard
+
+```bash
+pip install flask flask-socketio flask-cors
+python -m web.app
+```
+
+Open `http://localhost:5000` — real-time terminal output, tool execution timeline, findings summary, session browser, and report viewer.
+
+### Compare missions (remediation tracking)
+
+Phantom can compare two sessions to track remediation progress:
+
+```
+Phantom: compare_missions("20260315_120000", "20260318_140000")
+
+Mission Diff: 20260315_120000 -> 20260318_140000
+==================================================
+
+## Vulnerability Findings
+  Session A: 15 findings | Session B: 8 findings
+
+  NEW (1):
+    [+] [HIGH] CVE-2024-1234
+
+  RESOLVED (8):
+    [-] [CRITICAL] CVE-2023-2745
+    [-] [HIGH] SQLi on /api/users
+    ...
+
+  PERSISTENT: 7 findings
+```
 
 ---
 
@@ -110,7 +184,7 @@ The client has signed a Rules of Engagement document. The scope is limited to th
 
 ### Step 1 — Install & configure
 
-Run `./install.sh` and follow the prompts (API key + target URL). Done — no manual file editing needed.
+Run `./install.sh` and follow the prompts (API key + target URL).
 
 ### Step 2 — Launch Phantom
 
@@ -120,106 +194,79 @@ export $(cat .env)
 python3 agent/main.py
 ```
 
-```
-🚀 Phantom - Ethical RedTeam v1.5.0
-Mode : AUTONOME TOTAL
-Scope : https://someth1ng.com — Pentest contract signed 2026-03-15...
-```
-
 ### Step 3 — Phantom reasons and acts autonomously
 
 Phantom works through the standard kill chain, narrating every decision:
 
 ```
-🤖 Phantom : Starting mission on https://someth1ng.com.
-  Result obtained: scope confirmed.
+Phantom: Starting mission on https://someth1ng.com.
+  Result: scope confirmed.
   Analysis: I will begin with passive recon before any active scan.
-  Next optimal action: run_recon on the target.
-  Reason: passive data collection has zero impact on availability.
+  Next action: run_nmap for port scanning, then run_recon for subdomains.
 
-🔧 Execution : run_recon
-→ DNS records, WHOIS, HTTP headers, tech stack fingerprinting...
+[TOOL] run_nmap (service scan)
+  22/tcp   open  SSH        OpenSSH 8.9
+  80/tcp   open  HTTP       Apache 2.4.51
+  443/tcp  open  HTTPS      Apache 2.4.51
+  3306/tcp open  MySQL      MariaDB 10.6
 
-🤖 Phantom : Result obtained: Apache 2.4.51, PHP 8.0, WordPress 6.1.
-  Analysis: WordPress 6.1 is EOL — multiple known CVEs. Apache version exposed.
-  Next optimal action: run_nuclei with wordpress templates.
-  Reason: high probability of CVE hits before any brute-force or injection.
+[TOOL] run_recon
+  47 unique subdomains [crt.sh(38), hackertarget(15)]
 
-🔧 Execution : run_nuclei
-→ Target: https://someth1ng.com, templates: http/cves, severity: critical
+[TOOL] run_whatweb
+  Server: Apache/2.4.51
+  CMS/Framework: WordPress
+  Security headers MISSING: Content-Security-Policy, X-Frame-Options
 
-🤖 Phantom : Result obtained: 3 findings — CVE-2023-2745 (path traversal),
-  CVE-2022-3590 (SSRF via pingback), misconfigured xmlrpc.php.
-  Analysis: CVE-2023-2745 exploitable without auth — direct path to /etc/passwd.
-  Next optimal action: run_sqlmap on login endpoint discovered by ffuf.
-  Reason: parallel track — test both path traversal and SQL injection.
+[TOOL] run_nuclei
+  [CRITICAL] CVE-2023-2745 → https://someth1ng.com/wp-admin/
+  [HIGH] CVE-2022-3590 → https://someth1ng.com/xmlrpc.php
+  [MEDIUM] Misconfigured xmlrpc.php
 
-🔧 Execution : run_ffuf
-→ Discovered: /admin, /wp-login.php, /api/v1/users, /backup.zip
+[TOOL] run_ffuf
+  /admin, /wp-login.php, /api/v1/users, /backup.zip
 
-🔧 Execution : run_sqlmap
-→ Target: https://someth1ng.com/api/v1/users?id=1
-→ Injection found: UNION-based, 4 columns — database: someth1ng_prod
+[TOOL] take_screenshot (evidence capture)
+  Screenshot saved: logs/20260318_120000/screenshot_20260318_120512.png
 
-🤖 Phantom : Result obtained: SQLi confirmed, partial dump acquired.
-  Analysis: standard tools exhausted on web layer. Internal network segment
-  (192.168.1.0/24) is in scope — MITM probe warranted.
-  Next optimal action: run_bettercap on eth0.
-  Reason: ARP probe will map live hosts and expose unencrypted traffic.
-
-🔧 Execution : run_bettercap
-→ Interface: eth0, module: net.probe, duration: 30s
-→ 14 live hosts discovered — 3 running HTTP on port 80 (no TLS)
-
-🤖 Phantom : Result obtained: 3 unencrypted internal services exposed.
-  Analysis: web fingerprinting of internal hosts shows legacy Apache 2.2
-  with no patch history. Standard CVE templates yielded 0 hits.
-  Escalating to full tool suite.
-  Next optimal action: run_cyberstrike on 192.168.1.42.
-  Reason: legacy target requires deeper enumeration beyond nuclei/ffuf scope.
-
-🔧 Execution : run_cyberstrike
-→ Target: 192.168.1.42, role: redteam, skill: full-scan
-→ 7 critical findings — LFI, exposed .git repo, default credentials on /manager
-→ Achieved RCE via Tomcat manager upload (CVE-2019-0232)
+[TOOL] run_sqlmap
+  Injection found: UNION-based, 4 columns
+  Database: someth1ng_prod (12 tables, 4200 users)
 ```
 
 After 10 turns, Phantom pauses:
 
 ```
-⏸️  Pause after 10 steps (mode autonome).
-Entrée = continue | 'stop' = stop | 'report' = force report :
+Pause after 10 steps.
+Enter = continue | 'stop' = stop | 'report' = force report:
 ```
-
-You review the logs in `logs/agent.log`, then press Enter to continue — or type `report` to get an immediate executive summary.
 
 ### Step 4 — Mission complete
 
 ```
-🤖 Phantom : Objectives achieved. Generating final report.
+Phantom: Objectives achieved. Generating final report.
 
 === MISSION COMPLETE ===
 
 **Executive Summary**
-app.someth1ng.com presents 3 critical vulnerabilities exploitable without authentication.
+someth1ng.com presents 3 critical vulnerabilities exploitable without authentication.
+
+**Risk Score: 9.2/10 (Critical)**
+  Critical: 3 | High: 5 | Medium: 2 | Low: 1
 
 **Critical findings**
-1. CVE-2023-2745 — WordPress path traversal → arbitrary file read (PoC: /wp-admin/?action=..&page=../../../etc/passwd)
-2. SQL injection on /api/v1/users?id= → full database dump (someth1ng_prod, 12 tables, 4 200 users)
-3. /backup.zip publicly accessible → contains database credentials in plaintext
-4. Internal host 192.168.1.42 — RCE via Tomcat manager (CVE-2019-0232), default credentials
-5. 3 internal services transmitting data over unencrypted HTTP (bettercap ARP probe)
+1. CVE-2023-2745 — WordPress path traversal → arbitrary file read
+2. SQL injection on /api/v1/users?id= → full database dump
+3. /backup.zip publicly accessible → database credentials in plaintext
 
 **Recommendations**
 - Patch WordPress to 6.5+ immediately
 - Parameterize all SQL queries — use prepared statements
-- Remove /backup.zip and audit all publicly accessible backup files
-- Disable xmlrpc.php if not required
+- Remove /backup.zip and audit all publicly accessible files
 - Enforce TLS on all internal services
-- Rotate Tomcat manager credentials and restrict access to localhost
 ```
 
-All findings are in `logs/` — ready to import into your report.
+Reports saved in `logs/<session>/` as Markdown, HTML, and optional PDF.
 
 ---
 
@@ -228,29 +275,76 @@ All findings are in `logs/` — ready to import into your report.
 `config.yaml`:
 
 ```yaml
-provider: "anthropic"   # anthropic | openai | grok | gemini | ollama | mistral | deepseek
-model: ""               # leave empty for provider default
+provider: "anthropic"        # anthropic | openai | grok | gemini | ollama | mistral | deepseek
+model: ""                    # leave empty for provider default
 autonomous: true
 max_autonomous_turns: 50
 pause_every_n_turns: 10
+interactive: true
+
+# Performance
+max_parallel_tools: 4        # concurrent tool execution
+requests_per_second: 5       # rate limit for HTTP calls
+retry_max: 3                 # retry attempts for HTTP tools
+retry_backoff: 2             # exponential backoff factor
+
+# Timeouts (seconds)
+sqlmap_timeout: 300
+nmap_timeout: 300
+context_compact_after: 5     # truncate old tool results after N turns
 ```
 
-The installer writes the API key to `.env` and sets the provider in `config.yaml` automatically. To launch manually:
+### Scope file
 
-```bash
-# Linux
-source .venv/bin/activate
-export $(cat .env)
-export PATH=$PATH:$(pwd)/bin:/usr/local/bin
-python3 agent/main.py
+`scopes/current_scope.md` supports multiple targets, CIDRs, and comments:
 
-# Windows (PowerShell)
-foreach ($line in Get-Content .env) { [System.Environment]::SetEnvironmentVariable($line.Split("=")[0], $line.Split("=",2)[1]) }
-$env:PATH += ";$PWD\bin"
-python agent\main.py
+```markdown
+# Authorized targets
+https://target.com
+https://api.target.com
+192.168.1.0/24
+
+# Authorization: Pentest contract signed 2026-03-15
 ```
 
-To switch provider or change the target between engagements, re-run the installer or edit `config.yaml` and `scopes/current_scope.md` directly.
+---
+
+## Project structure
+
+```
+Phantom/
+├── agent/
+│   ├── main.py                 # Entry point + session orchestration
+│   ├── agent_client.py         # Agentic loop + parallel tool execution
+│   ├── providers/              # Multi-LLM abstraction (7 providers)
+│   ├── tools/                  # 20 tool implementations
+│   │   ├── nmap_scan.py        # Port scanning + service detection
+│   │   ├── nuclei.py           # CVE scanning
+│   │   ├── ffuf.py             # Directory fuzzing
+│   │   ├── sqlmap.py           # SQL injection
+│   │   ├── recon.py            # Subdomain discovery
+│   │   ├── whatweb_tool.py     # Technology fingerprinting
+│   │   ├── screenshot.py       # Evidence capture
+│   │   ├── auth_manager.py     # Authentication management
+│   │   ├── mission_diff.py     # Session comparison
+│   │   ├── report.py           # Report generation (MD/HTML/PDF)
+│   │   ├── cvss_scorer.py      # Risk scoring utility
+│   │   ├── http_utils.py       # Retry with backoff
+│   │   ├── rate_limiter.py     # Token-bucket rate limiter
+│   │   └── ...                 # + bettercap, cyberstrike, payloads, etc.
+│   └── utils/
+│       └── validation.py       # Input sanitization + validation
+├── web/                        # Web dashboard (Flask + SocketIO)
+│   ├── app.py
+│   ├── templates/
+│   └── static/
+├── tests/                      # 44 unit tests
+├── config.yaml
+├── prompts/system_prompt.txt
+├── scopes/current_scope.md
+├── install.sh / install.ps1
+└── requirements.txt
+```
 
 ---
 
