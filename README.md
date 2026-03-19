@@ -113,15 +113,17 @@ Authorization note : Pentest contract signed 2026-03-15
 
 ### Windows (PowerShell)
 
-Colle cette ligne dans PowerShell depuis le dossier Phantom :
+From the Phantom directory, run:
+
+```powershell
+.\install.ps1
+```
+
+If your execution policy blocks unsigned scripts, use this one-liner instead:
 
 ```powershell
 & ([scriptblock]::Create((Get-Content .\install.ps1 -Raw)))
 ```
-
-> Cette commande lit le contenu du script et l'exécute comme un scriptblock — contourne complètement la vérification de signature sans modifier la politique système.
-
-Ou double-clique sur **`install.bat`** (même résultat, sans PowerShell).
 
 Same interactive flow (provider -> API key -> scope -> dependencies).
 Windows limitations: `bettercap` and `zphisher` require WSL2.
