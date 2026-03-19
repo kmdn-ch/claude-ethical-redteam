@@ -254,7 +254,7 @@ New-Item -ItemType Directory -Force -Path "wordlists" | Out-Null
 if (-not (Test-Path "wordlists\directory-list-2.3-medium.txt")) {
     Write-Host "Downloading default wordlist (SecLists)..."
     try {
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directory-list-2.3-medium.txt" `
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/danielmiessler/SecLists/main/Discovery/Web-Content/directory-list-2.3-medium.txt" `
             -OutFile "wordlists\directory-list-2.3-medium.txt" -UseBasicParsing
         $lines = (Get-Content "wordlists\directory-list-2.3-medium.txt").Count
         Write-Host "[OK] wordlist downloaded ($lines entries)" -ForegroundColor Green
@@ -266,21 +266,35 @@ if (-not (Test-Path "wordlists\directory-list-2.3-medium.txt")) {
 # sqlmap (Python-based, works on Windows)
 if (-not (Test-Path "tools\sqlmap_repo")) {
     Write-Host "Cloning sqlmap..."
-    git clone https://github.com/sqlmapproject/sqlmap.git tools\sqlmap_repo 2>$null
-    Write-Host "[OK] sqlmap cloned" -ForegroundColor Green
+    try {
+        $env:GIT_REDIRECT_STDERR = "2>&1"
+        git clone --quiet https://github.com/sqlmapproject/sqlmap.git tools\sqlmap_repo
+        Write-Host "[OK] sqlmap cloned" -ForegroundColor Green
+    } catch {
+        Write-Host "[!] sqlmap clone failed: $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item Env:\GIT_REDIRECT_STDERR -ErrorAction SilentlyContinue
+    }
 }
 
 # CyberStrikeAI
 if (-not (Test-Path "tools\cyberstrike_repo")) {
     Write-Host "Cloning CyberStrikeAI..."
-    git clone https://github.com/Ed1s0nZ/CyberStrikeAI.git tools\cyberstrike_repo 2>$null
-    if (Get-Command go -ErrorAction SilentlyContinue) {
-        Push-Location tools\cyberstrike_repo
-        go build -o ..\..\bin\cyberstrike.exe .\cmd\cyberstrike 2>$null
-        Pop-Location
-        Write-Host "[OK] CyberStrikeAI built" -ForegroundColor Green
-    } else {
-        Write-Host "[!] Go not found -- CyberStrikeAI skipped (install Go and re-run)" -ForegroundColor Yellow
+    try {
+        $env:GIT_REDIRECT_STDERR = "2>&1"
+        git clone --quiet https://github.com/Ed1s0nZ/CyberStrikeAI.git tools\cyberstrike_repo
+        if (Get-Command go -ErrorAction SilentlyContinue) {
+            Push-Location tools\cyberstrike_repo
+            go build -o ..\..\bin\cyberstrike.exe .\cmd\cyberstrike 2>$null
+            Pop-Location
+            Write-Host "[OK] CyberStrikeAI built" -ForegroundColor Green
+        } else {
+            Write-Host "[!] Go not found -- CyberStrikeAI skipped (install Go and re-run)" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "[!] CyberStrikeAI clone failed: $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item Env:\GIT_REDIRECT_STDERR -ErrorAction SilentlyContinue
     }
 }
 
