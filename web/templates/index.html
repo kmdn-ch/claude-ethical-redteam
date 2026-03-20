@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phantom - Ethical Red Team Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header>
         <div class="header-content">
             <h1>PHANTOM</h1>
             <span class="subtitle">Ethical Red Team Dashboard</span>
-            <div class="status" id="connection-status">Disconnected</div>
+            <div class="header-right">
+                <span class="status" id="connection-status">Disconnected</span>
+                <span class="mission-timer" id="mission-timer"></span>
+            </div>
         </div>
     </header>
 
@@ -27,7 +31,7 @@
             <!-- Controls -->
             <div class="controls">
                 <div class="control-row">
-                    <input type="text" id="scope-input" placeholder="Target scope (e.g. https://target.com)" class="input-field">
+                    <input type="text" id="scope-input" placeholder="Target scope (e.g. https://dummytarget.com)" class="input-field">
                     <select id="provider-select" class="input-field">
                         <option value="anthropic">Anthropic</option>
                         <option value="openai">OpenAI</option>
@@ -42,21 +46,119 @@
                 </div>
             </div>
 
-            <!-- Terminal Output -->
-            <div class="terminal" id="terminal">
-                <div class="terminal-header">
-                    <span>Terminal Output</span>
-                    <button class="btn btn-small" onclick="clearTerminal()">Clear</button>
+            <!-- Tab Navigation -->
+            <div class="tabs">
+                <button class="tab active" data-tab="terminal-tab" onclick="switchTab(this)">Terminal</button>
+                <button class="tab" data-tab="charts-tab" onclick="switchTab(this)">Charts</button>
+                <button class="tab" data-tab="tables-tab" onclick="switchTab(this)">Tables</button>
+                <button class="tab" data-tab="summary-tab" onclick="switchTab(this)">Mission Summary</button>
+            </div>
+
+            <!-- Tab: Terminal -->
+            <div class="tab-content active" id="terminal-tab">
+                <div class="terminal" id="terminal">
+                    <div class="terminal-header">
+                        <span>Live Output</span>
+                        <div>
+                            <span class="turn-badge" id="turn-badge">Turn 0</span>
+                            <button class="btn btn-small" onclick="clearTerminal()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="terminal-body" id="terminal-body">
+                        <div class="terminal-line system">Phantom Dashboard ready. Configure scope and launch a mission.</div>
+                    </div>
                 </div>
-                <div class="terminal-body" id="terminal-body">
-                    <div class="terminal-line system">Phantom Dashboard ready. Configure scope and launch a mission.</div>
+
+                <!-- Tool Timeline -->
+                <div class="timeline" id="timeline">
+                    <h3>Tool Execution Timeline</h3>
+                    <div class="timeline-bar" id="timeline-bar"></div>
                 </div>
             </div>
 
-            <!-- Tool Timeline -->
-            <div class="timeline" id="timeline">
-                <h3>Tool Execution Timeline</h3>
-                <div class="timeline-bar" id="timeline-bar"></div>
+            <!-- Tab: Charts -->
+            <div class="tab-content" id="charts-tab">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Findings by Severity</h3>
+                        <canvas id="chart-severity"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Open Ports</h3>
+                        <canvas id="chart-ports"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Tools Used</h3>
+                        <canvas id="chart-tools"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>HTTP Status Codes (ffuf)</h3>
+                        <canvas id="chart-ffuf"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Tables -->
+            <div class="tab-content" id="tables-tab">
+                <div class="table-section">
+                    <h3>Findings</h3>
+                    <div class="table-wrapper">
+                        <table id="table-findings">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Template</th>
+                                    <th>Protocol</th>
+                                    <th>URL</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-section">
+                    <h3>Open Ports (nmap)</h3>
+                    <div class="table-wrapper">
+                        <table id="table-ports">
+                            <thead>
+                                <tr>
+                                    <th>Port</th>
+                                    <th>Protocol</th>
+                                    <th>State</th>
+                                    <th>Service</th>
+                                    <th>Version</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-section">
+                    <h3>Discovered Paths (ffuf)</h3>
+                    <div class="table-wrapper">
+                        <table id="table-ffuf">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Status</th>
+                                    <th>Size</th>
+                                    <th>Words</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Mission Summary -->
+            <div class="tab-content" id="summary-tab">
+                <div class="summary-panel" id="summary-panel">
+                    <div class="summary-placeholder">
+                        No mission completed yet. Launch a mission to see the summary here.
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -70,6 +172,7 @@
                 <div class="finding-badge low" id="count-low">0 Low</div>
                 <div class="finding-badge info" id="count-info">0 Info</div>
             </div>
+            <h3 class="sidebar-subtitle">Recent Findings</h3>
             <div id="findings-list"></div>
         </aside>
     </div>
