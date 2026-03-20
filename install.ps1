@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Phantom - Ethical RedTeam -- Windows Installer v2.0.8
+    Phantom - Ethical RedTeam -- Windows Installer v2.2.1
 .DESCRIPTION
     Interactive setup: LLM provider, API key, authorized scope, dependencies.
     Run from the repo root: .\install.ps1
@@ -13,23 +13,15 @@ $ErrorActionPreference = "Stop"
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Phantom - Ethical RedTeam"              -ForegroundColor Cyan
-Write-Host "  Installer v2.0.8 (Windows)"            -ForegroundColor Cyan
+Write-Host "  Installer v2.2.1 (Windows)"            -ForegroundColor Cyan
 Write-Host "========================================"  -ForegroundColor Cyan
 Write-Host ""
 
 # -----------------------------------------
-# STEP 0 -- LLM Provider selection
+# STEP 0 -- LLM Provider selection (with Ollama auto-detection)
 # -----------------------------------------
 Write-Host "[ STEP 0 / 3 ] LLM Provider" -ForegroundColor Yellow
 Write-Host "-----------------------------------------"
-Write-Host "  1) Anthropic  (Claude sonnet-4-6)   - https://console.anthropic.com"
-Write-Host "  2) OpenAI     (ChatGPT 5.4)         - https://platform.openai.com"
-Write-Host "  3) xAI        (Grok 4.20 Beta)      - https://console.x.ai"
-Write-Host "  4) Google     (Gemini 3)             - https://aistudio.google.com/apikey"
-Write-Host "  5) Mistral    (mistral-large)        - https://console.mistral.ai"
-Write-Host "  6) DeepSeek   (DeepSeek 3.2)         - https://platform.deepseek.com"
-Write-Host "  7) Ollama     (local - deepseek-v3.2:cloud default)"
-Write-Host ""
 
 $providerMap = @{
     "1" = @{ Name = "anthropic"; EnvVar = "ANTHROPIC_API_KEY"; Prefix = "sk-ant-" }
@@ -41,16 +33,82 @@ $providerMap = @{
     "7" = @{ Name = "ollama";    EnvVar = "";                  Prefix = "" }
 }
 
-do {
-    $choice = Read-Host "Choose provider [1-7]"
-} while (-not $providerMap.ContainsKey($choice))
+# --- Auto-detect Ollama ---
+$ollamaDetected = $false
+$ollamaAutoModel = ""
+$ollamaAutoHost = "http://localhost:11434"
 
-$provider   = $providerMap[$choice].Name
-$envVar     = $providerMap[$choice].EnvVar
-$keyPrefix  = $providerMap[$choice].Prefix
+if (Get-Command ollama -ErrorAction SilentlyContinue) {
+    Write-Host "  [i] Ollama detected on this system." -ForegroundColor Cyan
+    try {
+        $tags = Invoke-RestMethod -Uri "$ollamaAutoHost/api/tags" -UseBasicParsing -ErrorAction Stop
+        if ($tags.models.Count -gt 0) {
+            $ollamaDetected = $true
+            # Pick the first available model
+            $ollamaAutoModel = $tags.models[0].name
+            Write-Host "  [i] Ollama is running with $($tags.models.Count) model(s):" -ForegroundColor Cyan
+            foreach ($m in $tags.models) {
+                $size = ""
+                if ($m.size) { $size = " ($([math]::Round($m.size / 1GB, 1)) GB)" }
+                Write-Host "       - $($m.name)$size" -ForegroundColor White
+            }
+            Write-Host ""
+            Write-Host "  --> Ollama auto-detected with model: $ollamaAutoModel" -ForegroundColor Green
+            $useOllama = Read-Host "  Use Ollama with '$ollamaAutoModel'? [Y/n]"
+            if ($useOllama -eq "" -or $useOllama -match "^[Yy]$") {
+                # Let user pick a different model if multiple are available
+                if ($tags.models.Count -gt 1) {
+                    $pickModel = Read-Host "  Use '$ollamaAutoModel' or type another model name [Enter = keep]"
+                    if ($pickModel) { $ollamaAutoModel = $pickModel }
+                }
+                Write-Host ""
+            } else {
+                $ollamaDetected = $false
+            }
+        } else {
+            Write-Host "  [!] Ollama is running but no models installed." -ForegroundColor Yellow
+            Write-Host "      Install a model first: ollama pull deepseek-v3.2:cloud" -ForegroundColor Yellow
+            Write-Host ""
+        }
+    } catch {
+        Write-Host "  [!] Ollama installed but not running. Start it with: ollama serve" -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
 
-Write-Host "[OK] Provider selected : $($provider.ToUpper())" -ForegroundColor Green
-Write-Host ""
+if ($ollamaDetected) {
+    # Skip provider selection -- use Ollama
+    $provider = "ollama"
+    $envVar = ""
+    $keyPrefix = ""
+    $ollamaModel = $ollamaAutoModel
+    $ollamaHost = $ollamaAutoHost
+    Write-Host "[OK] Provider: OLLAMA (auto-detected)" -ForegroundColor Green
+    Write-Host "     Model: $ollamaModel" -ForegroundColor Green
+    Write-Host "     Host: $ollamaHost" -ForegroundColor Green
+    Write-Host ""
+} else {
+    # Manual provider selection
+    Write-Host "  1) Anthropic  (Claude sonnet-4-6)   - https://console.anthropic.com"
+    Write-Host "  2) OpenAI     (ChatGPT 5.4)         - https://platform.openai.com"
+    Write-Host "  3) xAI        (Grok 4.20 Beta)      - https://console.x.ai"
+    Write-Host "  4) Google     (Gemini 3)             - https://aistudio.google.com/apikey"
+    Write-Host "  5) Mistral    (mistral-large)        - https://console.mistral.ai"
+    Write-Host "  6) DeepSeek   (DeepSeek 3.2)         - https://platform.deepseek.com"
+    Write-Host "  7) Ollama     (local)"
+    Write-Host ""
+
+    do {
+        $choice = Read-Host "Choose provider [1-7]"
+    } while (-not $providerMap.ContainsKey($choice))
+
+    $provider   = $providerMap[$choice].Name
+    $envVar     = $providerMap[$choice].EnvVar
+    $keyPrefix  = $providerMap[$choice].Prefix
+
+    Write-Host "[OK] Provider selected : $($provider.ToUpper())" -ForegroundColor Green
+    Write-Host ""
+}
 
 # -----------------------------------------
 # Helper -- test LLM connection
@@ -120,7 +178,18 @@ Write-Host "-----------------------------------------"
 $apiKey = ""
 $ollamaHost = "http://localhost:11434"
 
-if ($provider -eq "ollama") {
+if ($provider -eq "ollama" -and $ollamaDetected) {
+    # Already configured by auto-detection -- just write .env and confirm connection
+    Write-Host "  Ollama already configured by auto-detection." -ForegroundColor Green
+    Write-Host "  -> Testing connection to $ollamaHost..."
+    if (Test-LLMConnection -Provider "ollama" -OllamaHost $ollamaHost) {
+        Write-Host "  [OK] Connection confirmed." -ForegroundColor Green
+    }
+    [System.IO.File]::WriteAllText("$PWD\.env", "", [System.Text.UTF8Encoding]::new($false))
+
+} elseif ($provider -eq "ollama") {
+    # Manual Ollama setup (user chose option 7 without auto-detect)
+    $ollamaHost = "http://localhost:11434"
     $inputHost = Read-Host "Ollama host [http://localhost:11434]"
     if ($inputHost) { $ollamaHost = $inputHost }
 

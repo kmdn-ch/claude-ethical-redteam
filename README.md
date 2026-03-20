@@ -94,14 +94,18 @@ chmod +x install.sh
 
 ```
 [ STEP 0 / 3 ] LLM Provider
-  1) Anthropic (Claude sonnet-4-6)   2) OpenAI (ChatGPT 5.4)    3) xAI (Grok 4.20 Beta)
-  4) Google (Gemini 3)               5) Mistral                  6) DeepSeek 3.2
-  7) Ollama (local — deepseek-v3.2:cloud)
-Choose provider [1-7] : 1
+  [i] Ollama detected on this system.
+  [i] Ollama is running with 1 model(s):
+       - deepseek-v3.2:cloud (3.2 GB)
+
+  --> Ollama auto-detected with model: deepseek-v3.2:cloud
+  Use Ollama with 'deepseek-v3.2:cloud'? [Y/n] :
+
+  [OK] Provider: OLLAMA (auto-detected)
 
 [ STEP 1 / 3 ] API Key
-Enter your ANTHROPIC_API_KEY : sk-ant-...
-  → Testing connection... OK
+  Ollama already configured by auto-detection.
+  -> Testing connection... [OK] (HTTP 200)
 
 [ STEP 2 / 3 ] Authorized Scope
 Target URL : http://dummytarget.com
@@ -110,6 +114,8 @@ Authorization note : Pentest contract signed 2026-03-15
 [ STEP 3 / 3 ] Installing dependencies...
   Installation complete !
 ```
+
+If Ollama is not detected, the installer shows a manual provider selection menu (Anthropic, OpenAI, Grok, Gemini, Mistral, DeepSeek, Ollama).
 
 > `chmod +x install.sh` is required once after cloning. Phantom launches automatically at the end.
 
