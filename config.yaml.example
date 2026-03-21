@@ -51,3 +51,9 @@ context_compact_after: 5
 
 # Stall detection -- inject pivot guidance after N turns with no new findings
 stall_threshold: 3
+
+# Stealth profile: silent | stealthy | normal | aggressive
+stealth_profile: "normal"
+
+# HTTP proxy for all tool requests (optional, e.g. Burp Suite)
+# proxy: "http://127.0.0.1:8080"

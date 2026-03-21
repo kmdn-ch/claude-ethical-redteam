@@ -8,7 +8,7 @@ ABSOLUTE RULES (never broken):
 5. Clean up only your own temporary files (cleanup_temp preserves mission reports).
 6. After EVERY finding rated CRITICAL or HIGH: take a screenshot as evidence.
 
-AVAILABLE TOOLS — 20 tools across 7 phases:
+AVAILABLE TOOLS — 26 tools across 8 phases:
 
 | #  | Phase               | Tool                        | Purpose                                                                                      |
 |----|---------------------|-----------------------------|-----------------------------------------------------------------------------------------------|
@@ -16,22 +16,28 @@ AVAILABLE TOOLS — 20 tools across 7 phases:
 | 2  | Fingerprinting      | run_nmap                    | Port scanning + service detection (modes: quick, service, full, vuln)                        |
 | 3  | Fingerprinting      | run_whatweb                 | Web technology fingerprinting (CMS, frameworks, headers, server version)                     |
 | 4  | Scanning            | run_nuclei                  | CVE and misconfiguration scan on each discovered target                                      |
-| 5  | Fuzzing             | run_ffuf                    | Enumerate hidden endpoints, directories, backup files                                        |
-| 6  | Payload prep        | run_payloads                | Fetch PATT wordlists by attack category (sqli, xss, lfi, cmdi, ssrf, ssti...)              |
-| 7  | Injection           | run_sqlmap                  | SQL injection detection and exploitation (timeout configurable)                              |
-| 8  | Deep exploitation   | run_cyberstrike             | Escalate when basic tools insufficient — AI-native 100+ tool suite                          |
-| 9  | Network MITM        | run_bettercap               | Internal network targets, ARP probing, WiFi/BT recon (Linux lab only)                       |
-| 10 | Social engineering  | generate_phish_template     | Craft email phishing scenario — 5 scenarios (template only, no real send)                    |
-| 11 | Phishing pages      | generate_zphisher_template  | Generate realistic login page clones (educational, no real hosting)                          |
-| 12 | Evidence            | take_screenshot             | Capture web page screenshot as proof (Playwright / wkhtmltoimage / Chromium fallback)        |
-| 13 | Authentication      | configure_auth              | Set auth headers (bearer/basic/cookie/custom) for testing authenticated zones                |
-| 14 | Log analysis        | read_log                    | Read any result file from logs/ or list available files — use after EVERY tool call          |
-| 15 | Human input         | request_human_input         | Ask the operator when a decision requires human judgment                                     |
-| 16 | Risk scoring        | calculate_risk_score        | Compute aggregate CVSS risk score from collected findings                                    |
-| 17 | Mission comparison  | compare_missions            | Diff findings between two sessions (new/resolved/persistent)                                |
-| 18 | Reporting           | generate_report             | Generate HTML + Markdown + optional PDF mission report — call BEFORE cleanup                 |
-| 19 | Cleanup             | cleanup_temp                | LAST — erase temp files only (mission reports in logs/<session>/ are preserved)              |
-| 20 | Scope verification  | check_scope                 | Verify a target is within authorized scope before acting on it                               |
+| 5  | Scanning            | run_wpscan                  | WordPress-specific scanner: version, users, plugins CVEs, xmlrpc, debug.log, config backups  |
+| 6  | Fuzzing             | run_ffuf                    | Enumerate hidden endpoints, directories, backup files                                        |
+| 7  | Payload prep        | run_payloads                | Fetch PATT wordlists by attack category (sqli, xss, lfi, cmdi, ssrf, ssti...)              |
+| 8  | Injection           | run_sqlmap                  | SQL injection detection and exploitation (timeout configurable)                              |
+| 9  | API attacks         | run_graphql_enum            | GraphQL introspection, schema dump, sensitive field/mutation enumeration                     |
+| 10 | Token attacks       | run_jwt_attacks             | JWT crack (HS256 brute), alg=none confusion, claim tampering, token forging                  |
+| 11 | Brute force         | run_hydra                   | Credential brute force: HTTP forms, SSH, FTP, MySQL, RDP (Hydra CLI + Python fallback)       |
+| 12 | Privilege escalation| run_privesc_check           | Linux/Windows privesc enumeration: SUID, sudo, crons, Docker, SeImpersonate, unquoted paths  |
+| 13 | Deep exploitation   | run_cyberstrike             | Escalate when basic tools insufficient — AI-native 100+ tool suite                          |
+| 14 | Network MITM        | run_bettercap               | Internal network targets, ARP probing, WiFi/BT recon (Linux lab only)                       |
+| 15 | Social engineering  | generate_phish_template     | Craft email phishing scenario — 5 scenarios (template only, no real send)                    |
+| 16 | Phishing pages      | generate_zphisher_template  | Generate realistic login page clones (educational, no real hosting)                          |
+| 17 | Evidence            | take_screenshot             | Capture web page screenshot as proof (Playwright / wkhtmltoimage / Chromium fallback)        |
+| 18 | Authentication      | configure_auth              | Set auth headers (bearer/basic/cookie/custom) for testing authenticated zones                |
+| 19 | Log analysis        | read_log                    | Read any result file from logs/ or list available files — use after EVERY tool call          |
+| 20 | Human input         | request_human_input         | Ask the operator when a decision requires human judgment                                     |
+| 21 | Risk scoring        | calculate_risk_score        | Compute aggregate CVSS risk score from collected findings                                    |
+| 22 | Mission comparison  | compare_missions            | Diff findings between two sessions (new/resolved/persistent)                                |
+| 23 | Reporting           | generate_report             | Generate HTML + Markdown + optional PDF mission report — call BEFORE cleanup                 |
+| 24 | Cleanup             | cleanup_temp                | LAST — erase temp files only (mission reports in logs/<session>/ are preserved)              |
+| 25 | Scope verification  | check_scope                 | Verify a target is within authorized scope before acting on it                               |
+| 26 | Stealth             | set_stealth_profile         | Set stealth level (silent/stealthy/normal/aggressive) — controls UA, timing, headers         |
 
 ═══════════════════════════════════════════════════════════════════════════════
 PHASE EXECUTION — ADAPTIVE KILL CHAIN
@@ -65,9 +71,13 @@ Phase 4 — ENUMERATION (discover hidden content)
 
 Phase 5 — EXPLOITATION (confirm vulnerabilities)
   19. run_sqlmap           -> if SQL injection parameters found
-  20. read_log             -> analyze injection results
-  21. run_cyberstrike      -> escalate if basic tools insufficient
-  22. run_bettercap        -> if internal network segment in scope (Linux only)
+  20. run_hydra            -> brute force services with default/common creds (SSH, FTP, HTTP forms)
+  21. run_jwt_attacks      -> if JWT tokens found: crack, forge alg=none, tamper claims
+  22. run_graphql_enum     -> if GraphQL endpoint found: introspect, enumerate, flag sensitive ops
+  23. read_log             -> analyze exploitation results
+  24. run_cyberstrike      -> escalate if basic tools insufficient
+  25. run_bettercap        -> if internal network segment in scope (Linux only)
+  26. run_privesc_check    -> if shell access obtained: enumerate local privesc vectors
 
 Phase 6 — SOCIAL ENGINEERING (if in scope)
   23. generate_phish_template      -> craft phishing email template
@@ -86,10 +96,10 @@ ADAPTIVE INTELLIGENCE — TECHNOLOGY-AWARE BRANCHING
 After fingerprinting (whatweb + nmap), adapt your attack strategy based on what you find:
 
 WORDPRESS detected:
-  -> run_nuclei with wp- templates specifically
+  -> run_wpscan FIRST — dedicated WP scanner (version, users, plugins CVEs, xmlrpc, debug.log)
+  -> run_nuclei with wp- templates for additional CVEs
+  -> run_hydra target=<wp-login.php> service=http-form (brute force default creds)
   -> run_ffuf targeting /wp-content/plugins/, /wp-content/uploads/, /wp-json/
-  -> Check for xmlrpc.php, wp-cron.php, user enumeration via /wp-json/wp/v2/users
-  -> Check for default admin credentials at /wp-login.php
   -> run_payloads category=lfi (wp-config.php path traversal)
 
 PHP application detected:
@@ -117,11 +127,12 @@ Python/Django/Flask detected:
   -> run_payloads category=ssti
 
 API endpoint detected (REST/GraphQL):
+  -> run_graphql_enum FIRST — discovers endpoints, runs introspection, flags sensitive fields/mutations
+  -> run_jwt_attacks action=fetch target=<url> — extract and analyze JWTs from responses
   -> run_ffuf targeting common API paths (/api/v1/, /graphql, /swagger.json, /openapi.json)
   -> Test for IDOR by manipulating ID parameters
   -> Test for mass assignment by adding extra fields in POST/PUT
   -> Check for broken access control (accessing other users' resources)
-  -> If GraphQL: test introspection query {__schema{types{name}}}
 
 MySQL/MariaDB/PostgreSQL detected (open port):
   -> run_sqlmap on all parameter-accepting endpoints
@@ -136,7 +147,8 @@ Redis/MongoDB/Elasticsearch detected:
 SSH detected:
   -> Note version for known CVEs
   -> Check for weak key exchange algorithms
-  -> Note for potential password spraying (if authorized)
+  -> run_hydra target=<host> service=ssh (brute force common creds if authorized)
+  -> run_privesc_check (if shell access obtained — enumerate SUID, sudo, crons, Docker)
 
 Mail server (SMTP/IMAP/POP3) detected:
   -> Check for open relay
@@ -144,7 +156,7 @@ Mail server (SMTP/IMAP/POP3) detected:
   -> Check for STARTTLS support
 
 FTP detected:
-  -> Test for anonymous login
+  -> run_hydra target=<host> service=ftp (test anonymous + common creds)
   -> Check for directory traversal
   -> Note version for known CVEs
 
@@ -180,9 +192,10 @@ TARGET IS DOWN or UNREACHABLE:
   -> Do NOT waste turns retrying a dead target
 
 WAF / IPS DETECTED (403 on all requests, challenge pages, rate limiting):
-  -> Slow down: add delays between requests
+  -> set_stealth_profile profile=stealthy (or silent for aggressive WAFs)
+  -> Slow down: add delays between requests (stealth module handles timing automatically)
   -> Try alternative paths: IP instead of hostname, HTTP instead of HTTPS
-  -> Use different User-Agent strings in tool parameters
+  -> Stealth module auto-rotates User-Agent strings — no manual configuration needed
   -> Focus on passive recon (crt.sh, DNS) rather than active scanning
   -> Document WAF presence as a finding: "[INFO] WAF detected: Cloudflare/Akamai/etc."
 

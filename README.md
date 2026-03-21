@@ -12,10 +12,11 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 ## Features
 
 - Autonomous agent with step-by-step reasoning + auto-correction
-- **20 built-in tools** with native tool-calling on any supported LLM
+- **26 built-in tools** with native tool-calling on any supported LLM
 - **Adaptive intelligence** — attack strategy adapts based on detected technology stack (WordPress, Java, Node.js, API, etc.)
 - **Attack chain correlation** — findings grouped by exploitation path, not isolated items
 - **Stall detection** — agent auto-pivots when scans produce no new findings
+- **Stealth profiles** — 4 modes (silent/stealthy/normal/aggressive) with User-Agent rotation, timing randomization, proxy support
 - **Parallel tool execution** — multiple tools run concurrently
 - **Mission resume** — interrupted missions can be resumed from saved state (atomic state save)
 - **Web dashboard** — live charts (Chart.js), structured tables, mission summary, session replay (port 5000)
@@ -42,7 +43,7 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | DeepSeek | `deepseek-chat-v3.2` | `DEEPSEEK_API_KEY` |
 | Ollama (local) | `deepseek-v3.2:cloud` | *(none)* |
 
-## Built-in Tools (20)
+## Built-in Tools (26)
 
 ### Reconnaissance
 | Tool | Description |
@@ -55,6 +56,7 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | Tool | Description |
 |---|---|
 | `run_nuclei` | CVE / misconfiguration scanning |
+| `run_wpscan` | WordPress scanner — version, users, plugins CVEs, xmlrpc, debug.log, config backups |
 | `run_ffuf` | Directory & endpoint fuzzing |
 | `run_sqlmap` | SQL injection detection & exploitation |
 | `run_payloads` | PayloadsAllTheThings integration (13 attack categories) |
@@ -62,6 +64,10 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 ### Exploitation & Network
 | Tool | Description |
 |---|---|
+| `run_hydra` | Credential brute force — HTTP forms, SSH, FTP, MySQL, RDP (Hydra CLI + Python fallback) |
+| `run_jwt_attacks` | JWT crack (HS256 brute), alg=none confusion, claim tampering, token forging |
+| `run_graphql_enum` | GraphQL introspection, schema dump, sensitive field/mutation enumeration |
+| `run_privesc_check` | Linux/Windows privilege escalation enumeration (SUID, sudo, Docker, SeImpersonate) |
 | `run_bettercap` | Network MITM, ARP probe (Linux only) |
 | `run_cyberstrike` | AI-native orchestrator — 100+ tools |
 
@@ -76,6 +82,11 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 |---|---|
 | `generate_phish_template` | Dynamic email templates — 5 scenarios (educational only) |
 | `generate_zphisher_template` | Phishing page templates via Zphisher (educational only) |
+
+### Stealth & Evasion
+| Tool | Description |
+|---|---|
+| `set_stealth_profile` | 4 profiles (silent/stealthy/normal/aggressive) — UA rotation, timing, proxy |
 
 ### Reporting & Utilities
 | Tool | Description |
@@ -336,6 +347,10 @@ retry_backoff: 2             # exponential backoff factor
 sqlmap_timeout: 300
 nmap_timeout: 300
 context_compact_after: 5     # truncate old tool results after N turns
+
+# Stealth
+stealth_profile: "normal"    # silent | stealthy | normal | aggressive
+# proxy: "http://127.0.0.1:8080"  # route through Burp Suite
 ```
 
 ### Scope file
@@ -361,7 +376,7 @@ Phantom/
 │   ├── main.py                 # Entry point + session orchestration
 │   ├── agent_client.py         # Agentic loop + parallel tool execution
 │   ├── providers/              # Multi-LLM abstraction (7 providers)
-│   ├── tools/                  # 20 tool implementations
+│   ├── tools/                  # 26 tool implementations
 │   │   ├── nmap_scan.py        # Port scanning + service detection
 │   │   ├── nuclei.py           # CVE scanning
 │   │   ├── ffuf.py             # Directory fuzzing
@@ -373,7 +388,13 @@ Phantom/
 │   │   ├── mission_diff.py     # Session comparison
 │   │   ├── report.py           # Report generation (MD/HTML/PDF)
 │   │   ├── cvss_scorer.py      # Risk scoring utility
-│   │   ├── http_utils.py       # Retry with backoff
+│   │   ├── wpscan.py           # WordPress vulnerability scanner
+│   │   ├── jwt_tool.py         # JWT attack tool (crack, forge, tamper)
+│   │   ├── graphql_enum.py     # GraphQL introspection enumeration
+│   │   ├── hydra_tool.py       # Credential brute force (Hydra + Python)
+│   │   ├── privesc.py          # Privilege escalation enumeration
+│   │   ├── stealth.py          # Stealth profiles, UA rotation, proxy
+│   │   ├── http_utils.py       # Retry with backoff + stealth integration
 │   │   ├── rate_limiter.py     # Token-bucket rate limiter
 │   │   └── ...                 # + bettercap, cyberstrike, payloads, etc.
 │   └── utils/

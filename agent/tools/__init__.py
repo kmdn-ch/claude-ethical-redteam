@@ -58,6 +58,8 @@ def _import_all_tools():
         "nmap_scan", "whatweb_tool", "screenshot",
         "auth_manager", "mission_diff",
         "cvss_scorer", "scope_checker",
+        "wpscan", "jwt_tool", "graphql_enum",
+        "hydra_tool", "privesc", "stealth",
     ]
     for mod_name in _optional:
         try:
