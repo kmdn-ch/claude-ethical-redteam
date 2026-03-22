@@ -44,7 +44,7 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | DeepSeek | `deepseek-chat-v3.2` | `DEEPSEEK_API_KEY` |
 | Ollama (local) | `deepseek-v3.2:cloud` | *(none)* |
 
-## Built-in Tools (26)
+## Built-in Tools (25)
 
 ### Reconnaissance
 | Tool | Description |
@@ -70,7 +70,6 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | `run_graphql_enum` | GraphQL introspection, schema dump, sensitive field/mutation enumeration |
 | `run_privesc_check` | Linux/Windows privilege escalation enumeration (SUID, sudo, Docker, SeImpersonate) |
 | `run_bettercap` | Network MITM, ARP probe (Linux only) |
-| `run_cyberstrike` | AI-native orchestrator — 100+ tools |
 
 ### Evidence & Auth
 | Tool | Description |
@@ -408,7 +407,7 @@ Phantom/
 │   │   ├── stealth.py          # Stealth profiles, UA rotation, proxy
 │   │   ├── http_utils.py       # Retry with backoff + stealth integration
 │   │   ├── rate_limiter.py     # Token-bucket rate limiter
-│   │   └── ...                 # + bettercap, cyberstrike, payloads, etc.
+│   │   └── ...                 # + bettercap, payloads, etc.
 │   └── utils/
 │       └── validation.py       # Input sanitization + validation
 ├── web/                        # Web dashboard (Flask + SocketIO)

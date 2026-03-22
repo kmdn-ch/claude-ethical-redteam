@@ -13,7 +13,6 @@ __pycache__/
 .ruff_cache/
 bin/
 tools/sqlmap_repo/
-tools/cyberstrike_repo/
 wordlists/
 
 # IDE & tooling

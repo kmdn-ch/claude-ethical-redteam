@@ -398,26 +398,6 @@ if (-not (Test-Path "tools\sqlmap_repo")) {
     }
 }
 
-# CyberStrikeAI
-if (-not (Test-Path "tools\cyberstrike_repo")) {
-    Write-Host "Cloning CyberStrikeAI..."
-    try {
-        $env:GIT_REDIRECT_STDERR = "2>&1"
-        git clone --quiet https://github.com/Ed1s0nZ/CyberStrikeAI.git tools\cyberstrike_repo
-        if (Get-Command go -ErrorAction SilentlyContinue) {
-            Push-Location tools\cyberstrike_repo
-            go build -o ..\..\bin\cyberstrike.exe .\cmd\cyberstrike 2>$null
-            Pop-Location
-            Write-Host "[OK] CyberStrikeAI built" -ForegroundColor Green
-        } else {
-            Write-Host "[!] Go not found -- CyberStrikeAI skipped (install Go and re-run)" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "[!] CyberStrikeAI clone failed: $_" -ForegroundColor Yellow
-    } finally {
-        Remove-Item Env:\GIT_REDIRECT_STDERR -ErrorAction SilentlyContinue
-    }
-}
 
 # Windows notes for Linux-only tools
 Write-Host ""

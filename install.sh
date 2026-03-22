@@ -346,16 +346,6 @@ if [ ! -d "tools/zphisher_repo" ]; then
     chmod +x tools/zphisher_repo/zphisher.sh
 fi
 
-# CyberStrikeAI
-mkdir -p bin
-if [ ! -d "tools/cyberstrike_repo" ]; then
-    git clone https://github.com/Ed1s0nZ/CyberStrikeAI.git tools/cyberstrike_repo 2>/dev/null || true
-fi
-if [ -d "tools/cyberstrike_repo" ]; then
-    (cd tools/cyberstrike_repo && go build -o ../../bin/cyberstrike ./cmd/cyberstrike 2>/dev/null) \
-        && echo "✅ CyberStrikeAI built" \
-        || echo "⚠️  CyberStrikeAI build failed — verify Go installation"
-fi
 
 # Python venv + dependencies
 if [ ! -d ".venv" ]; then

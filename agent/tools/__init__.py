@@ -34,7 +34,6 @@ def _import_all_tools():
     from .cleanup import run as cleanup_temp, TOOL_SPEC as cleanup_spec
     from .bettercap import run as run_bettercap, TOOL_SPEC as bettercap_spec
     from .zphisher import run as generate_zphisher_template, TOOL_SPEC as zphisher_spec
-    from .cyberstrike import run as run_cyberstrike, TOOL_SPEC as cyberstrike_spec
     from .read_log import run as read_log, TOOL_SPEC as read_log_spec
     from .payloads import run as run_payloads, TOOL_SPEC as payloads_spec
     from .human_input import run as request_human_input, TOOL_SPEC as human_input_spec
@@ -42,7 +41,7 @@ def _import_all_tools():
 
     _core_specs = [
         nuclei_spec, sqlmap_spec, ffuf_spec, recon_spec, phish_spec, cleanup_spec,
-        bettercap_spec, zphisher_spec, cyberstrike_spec, read_log_spec, payloads_spec,
+        bettercap_spec, zphisher_spec, read_log_spec, payloads_spec,
         human_input_spec, report_spec,
     ]
     _core_funcs = {
@@ -50,7 +49,7 @@ def _import_all_tools():
         "run_recon": run_recon, "generate_phish_template": generate_phish_template,
         "cleanup_temp": cleanup_temp, "run_bettercap": run_bettercap,
         "generate_zphisher_template": generate_zphisher_template,
-        "run_cyberstrike": run_cyberstrike, "read_log": read_log,
+        "read_log": read_log,
         "run_payloads": run_payloads, "request_human_input": request_human_input,
         "generate_report": generate_report,
     }
