@@ -44,7 +44,7 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | DeepSeek | `deepseek-chat-v3.2` | `DEEPSEEK_API_KEY` |
 | Ollama (local) | `deepseek-v3.2:cloud` | *(none)* |
 
-## Built-in Tools (25)
+## Built-in Tools (26)
 
 ### Reconnaissance
 | Tool | Description |
@@ -66,6 +66,7 @@ Uses Nmap, Nuclei, sqlmap, ffuf, WhatWeb, advanced reconnaissance, screenshots, 
 | Tool | Description |
 |---|---|
 | `run_hydra` | Credential brute force — HTTP forms, SSH, FTP, MySQL, RDP (Hydra CLI + Python fallback) |
+| `run_metasploit` | Metasploit module search, exploit execution, and auxiliary scanning |
 | `run_jwt_attacks` | JWT crack (HS256 brute), alg=none confusion, claim tampering, token forging |
 | `run_graphql_enum` | GraphQL introspection, schema dump, sensitive field/mutation enumeration |
 | `run_privesc_check` | Linux/Windows privilege escalation enumeration (SUID, sudo, Docker, SeImpersonate) |

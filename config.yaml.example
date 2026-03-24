@@ -39,6 +39,9 @@ nmap_timeout: 300
 # Ollama LLM timeout (seconds) — local models may need more time
 ollama_timeout: 300
 
+# Metasploit timeout (seconds) — exploits may need time to run
+metasploit_timeout: 120
+
 # Parallel tool execution
 max_parallel_tools: 4
 

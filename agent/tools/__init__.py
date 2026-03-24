@@ -63,6 +63,7 @@ def _import_all_tools():
         "cvss_scorer", "scope_checker",
         "wpscan", "jwt_tool", "graphql_enum",
         "hydra_tool", "privesc", "stealth",
+        "metasploit",
     ]
     for mod_name in _optional:
         try:

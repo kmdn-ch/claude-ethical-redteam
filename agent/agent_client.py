@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Severity keywords for finding detection
 _SEVERITY_RE = re.compile(
-    r"\[(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]", re.IGNORECASE
+    r"\[(CRITICAL|HIGH|MEDIUM|LOW|INFO)\]"
+    r"|(\[\+\]\s*.*?(session|shell|exploit|vulnerable))"
+    r"|(\[\*\]\s*.*?(found|opened|success))",
+    re.IGNORECASE,
 )
 
 
