@@ -26,7 +26,6 @@ Anyone curious enough to try it, any skill level. No security background require
 - **Language:** Python core, but open to any language (Rust, Go, etc.) if the architecture calls for it.
 - **Testing:** Rigorous test coverage required.
 - **Web UI:** Not a priority. CLI-first.
-- **No connection to Cervin** — completely separate project until explicitly stated otherwise.
 
 ## Conventions
 - Commits in English, conventional format (feat/fix/ci/docs/etc.)
