@@ -221,8 +221,19 @@ def validate_network_targets(
         # Skip things that look like version strings (e.g. "2.7.18")
         if all(c.isdigit() or c == "." for c in domain):
             continue
-        # Skip common non-target domains that appear in Python code
+        # Skip common non-target domains and Python dotted names
         if domain in {"example.com", "example.org", "localhost"}:
+            continue
+        # Skip Python module/attribute patterns (e.g., requests.get, json.dumps)
+        _PYTHON_ROOTS = {
+            "requests", "json", "urllib", "base64", "hashlib", "html", "xml",
+            "struct", "binascii", "http", "ssl", "ipaddress", "time",
+            "datetime", "collections", "itertools", "string", "textwrap",
+            "io", "csv", "math", "re", "socket", "os", "sys", "self",
+            "print", "result", "response", "data", "config", "status",
+        }
+        first_part = domain.split(".")[0]
+        if first_part in _PYTHON_ROOTS:
             continue
         found_targets.add(domain)
 
