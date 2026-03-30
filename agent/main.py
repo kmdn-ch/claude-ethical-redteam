@@ -7,7 +7,7 @@ import logging
 import argparse
 from pathlib import Path
 
-VERSION = "3.0.3"
+VERSION = "3.0.4"
 
 # Ensure agent/ is on sys.path (for relative imports like `from tools.xxx import ...`)
 sys.path.insert(0, str(Path(__file__).parent))
