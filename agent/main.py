@@ -7,11 +7,7 @@ import logging
 import argparse
 from pathlib import Path
 
-<<<<<<< HEAD
 VERSION = "3.1.2"
-=======
-VERSION = "3.1.2"
->>>>>>> d2cda99 (feat: v3.1.0 — hypothesis-driven autonomous engine, fixed reflect pipeline)
 
 # Ensure agent/ is on sys.path (for relative imports like `from tools.xxx import ...`)
 sys.path.insert(0, str(Path(__file__).parent))
@@ -202,10 +198,8 @@ scope_targets = [
 ]
 
 if args.v3:
-    # ================================================================
-    # V3 — PAOR autonomous reasoning engine
-    # ================================================================
-    from agent.orchestrator import Orchestrator
+    # =========================================================    # V3 — PAOR autonomous reasoning engine
+    # =========================================================    from agent.orchestrator import Orchestrator
     from agent.providers import get_provider
 
     logger.info("Starting Phantom v3 PAOR engine")
@@ -267,10 +261,8 @@ if args.v3:
     print("=" * 50)
 
 else:
-    # ================================================================
-    # V2 — Legacy linear loop
-    # ================================================================
-
+    # =========================================================    # V2 — Legacy linear loop
+    # =========================================================
     # --- Resume or fresh start ---
     turn = 0
     if args.resume:

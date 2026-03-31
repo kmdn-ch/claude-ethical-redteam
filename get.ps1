@@ -10,8 +10,16 @@
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-$REPO     = "https://github.com/kmdn-ch/phantom-ethical-redteam.git"
-$DEST     = "$env:USERPROFILE\phantom"
+$REPO = "https://github.com/kmdn-ch/phantom-ethical-redteam.git"
+$DEST = "$env:ProgramFiles\Phantom"
+
+# --- Require administrator (Program Files needs elevation) ---
+$currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "[ERROR] Run this script as Administrator (right-click PowerShell -> Run as Administrator)." -ForegroundColor Red
+    Write-Host "        Phantom installs to: $DEST" -ForegroundColor Yellow
+    exit 1
+}
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
@@ -56,12 +64,12 @@ if (Test-Path "$DEST\.git") {
     }
     Write-Host "  --> Cloning Phantom to $DEST ..." -ForegroundColor Yellow
     git clone --quiet $REPO $DEST
-    Write-Host "  [OK] Cloned successfully" -ForegroundColor Green
+    Write-Host "  [OK] Cloned to $DEST" -ForegroundColor Green
 }
 
 # --- Launch installer ---
 Write-Host ""
-Write-Host "  --> Launching installer..." -ForegroundColor Yellow
+Write-Host "  --> Launching installer from $DEST ..." -ForegroundColor Yellow
 Write-Host ""
 Set-Location $DEST
-& powershell.exe -ExecutionPolicy Bypass -File ".\install.ps1"
+& powershell.exe -ExecutionPolicy Bypass -File "$DEST\install.ps1"

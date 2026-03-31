@@ -9,6 +9,18 @@
 
 $ErrorActionPreference = "Stop"
 
+# --- Always run from the directory containing this script ---
+# This ensures all relative paths (config.yaml, scopes\, logs\, agent\) resolve correctly
+# regardless of where PowerShell was when the script was launched.
+Set-Location $PSScriptRoot
+
+# --- Require administrator (needed when installed under Program Files) ---
+$currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "[ERROR] Run as Administrator (right-click PowerShell -> Run as Administrator)." -ForegroundColor Red
+    Write-Host "        Install location: $PSScriptRoot" -ForegroundColor Yellow
+    exit 1
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
