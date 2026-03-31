@@ -8,9 +8,9 @@ import argparse
 from pathlib import Path
 
 <<<<<<< HEAD
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 =======
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 >>>>>>> d2cda99 (feat: v3.1.0 — hypothesis-driven autonomous engine, fixed reflect pipeline)
 
 # Ensure agent/ is on sys.path (for relative imports like `from tools.xxx import ...`)
